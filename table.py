@@ -35,6 +35,24 @@ def generateTrainingData(numSamples, fname):
         print("dumping")
         json.dump(actDicts,outfile)
         outfile.close()
+        
+def permutation(current, indices):
+    """
+    Permutes a certain section of a list and returns all permutations
+        -current: current list/input list
+        -indices: All indices to be permuted (assumes that all indices
+                  sequential)
+    """
+    indices.sort()
+	permuter = [current[a] for a in indices]
+	permutations = [list(x) for x in list(itertools.permutations(permuter))]
+	temp1 = current[:min(indices)]
+	temp2 = current[max(indices)+1:]
+	alllist = []
+	for i in permutations:
+		alllist.append(temp1 + i + temp2)
+	return alllist
+
 
 class Player():
     def __init__(self):
