@@ -11,7 +11,7 @@ from random import shuffle
 
 # In[ ]:
 
-fname = r"C:\Users\Nic\Documents\pokerbot\training\bigdumb.json"
+fname = r"C:\Users\Nic\Documents\pokerbot\training\dumb.json"
 with open(fname, 'r') as datafile:
     d = json.load(datafile)
 
@@ -19,7 +19,7 @@ with open(fname, 'r') as datafile:
 # In[ ]:
 
 data = []
-numSamples = 1000000 # using subset of datafile for fast verification
+numSamples = 10000 # using subset of datafile for fast verification
 for sample in d[:numSamples]:
     sl = []
     for aval in sample["action"]:
@@ -45,12 +45,8 @@ data = np.array(data)
 # In[ ]:
 
 n = len(data)
-train = data[0:int(n*0.7)]
-test = data[int(n*0.7):]
-
-
-# In[ ]:
-
+train = data[0:int(0.7*n)]
+test = data[int(0.7*n):]
 trainx = train[:,:-1]
 trainy = train[:,-1]
 trainy = np.reshape(trainy,(-1,1))
@@ -90,11 +86,11 @@ def nextBatch(currIndex,size,data):
 # In[ ]:
 
 x = tf.placeholder(tf.float32, shape=[None, numFeatures])
-y_ = tf.placeholder(tf.float32, shape=[None, 1])
+y_ = tf.placeholder(tf.float32, shape=[None,1])
 
-# Modeled after the Deep Stack architecture: 7 dense layers
-numDenseLayers = 7
-nDN = 500 # number of neurons per dense layer
+# Modeled after the Deep Stack architecture: multiple dense layers
+numDenseLayers = 4
+nDN = 128 # number of neurons per dense layer
 
 W_fc1 = weight_variable([numFeatures, nDN])
 b_fc1 = bias_variable([nDN])
@@ -125,25 +121,35 @@ y_result = tf.matmul(h_fc_drop,W_fcr) + b_fcr
 cross_entropy = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_result))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-correct_prediction = tf.equal(tf.argmax(y_result,1), tf.argmax(y_,1))
+y_thresholded = tf.map_fn(lambda z: tf.cond(tf.greater(z[0],tf.constant(0,dtype=tf.float32)),                                            lambda:tf.constant(1,dtype=tf.float32),                                             lambda:tf.constant(-1,dtype=tf.float32)),                          y_result, dtype = tf.float32)
+correct_prediction = tf.equal(y_thresholded, y_)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 sess = tf.InteractiveSession()
 sess.run(tf.global_variables_initializer())
 
 xstart = 0
 ystart = 0
-size = 1000
+size = 100
+numEpochs = 100
 numRuns = int(numSamples/size)
-printIter = numRuns/10
-for i in range(numRuns):
-    xbatch,xstart = nextBatch(xstart,size,trainx)
-    ybatch,ystart = nextBatch(ystart,size,trainy)
+printIter = 10
+print("Starting training...")
+for i in range(numEpochs):
+    for j in range(numRuns):
+        xbatch,xstart = nextBatch(xstart,size,trainx)
+        ybatch,ystart = nextBatch(ystart,size,trainy)
+        train_step.run(feed_dict={x: xbatch, y_: ybatch, keep_prob: 0.5})
     if i% printIter == 0:
         train_accuracy = accuracy.eval(feed_dict={
             x:xbatch, y_: ybatch, keep_prob: 1.0})
         print("step %d, training accuracy %g"%(i, train_accuracy))
-    train_step.run(feed_dict={x: xbatch, y_: ybatch, keep_prob: 0.5})
-
+        
+print("Starting testing...")
 print("test accuracy %g"%accuracy.eval(feed_dict={
     x: testx, y_: testy, keep_prob: 1.0}))
+
+
+# In[ ]:
+
+
 
