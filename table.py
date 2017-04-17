@@ -7,6 +7,7 @@ import random
 import json
 from random import shuffle
 import itertools
+import copy
 
 SMALL_BLIND = 50
 BIG_BLIND = 100
@@ -17,25 +18,6 @@ FOLD_VAL = 0
 CALL_VAL = 1
 BET_VAL = 2
 
-def generateTrainingData(numSamples, fname):
-    """
-    Just call this to simulate poker games and save to a json file.
-    - numSamples: positive integer number of games to simulate
-    - fname: a string denoting a json file location
-    """
-    players = [Player(),Player()]
-    t = Table(players)    
-    with open(fname,'w') as outfile:
-        actDicts = []
-        for i in range(numSamples):
-            # TODO: might want to randomize the dealer index
-            actDicts += t.playGame(0,log=True)
-            if i % 10000 == 0:
-                print(i)
-        print("dumping")
-        json.dump(actDicts,outfile)
-        outfile.close()
-        
 def permutation(current, indices):
     """
     Permutes a certain section of a list and returns all permutations
@@ -53,6 +35,35 @@ def permutation(current, indices):
 		alllist.append(temp1 + i + temp2)
 	return alllist
 
+
+
+def generateTrainingData(numSamples, fname):
+    """
+    Just call this to simulate poker games and save to a json file.
+    - numSamples: positive integer number of games to simulate
+    - fname: a string denoting a json file location
+    """
+    players = [Player(),Player()]
+    t = Table(players)    
+    with open(fname,'w') as outfile:
+        actDicts = []
+        for i in range(numSamples):
+            # TODO: might want to randomize the dealer index
+            current = t.playGame(0,log=True)
+	    handPerms = permutation(current["handCards"], range(len(current["handCards"])))
+	    tablePerms = permutation(current["tableCards"], range(len(current["tableCards"])))
+	    for x in handPerms:
+		for j in tablePerms:
+			newcurr = copy.deepcopy(current)
+			newcurr["handCards"] = x
+			newcurr["tablePerms"] = j
+			actDicts +=  newcurr
+            if i % 10000 == 0:
+                print(i)
+        print("dumping")
+        json.dump(actDicts,outfile)
+        outfile.close()
+        
 
 class Player():
     def __init__(self):
