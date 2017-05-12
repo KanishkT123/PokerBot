@@ -1,0 +1,2 @@
+model_checkpoint_path: "small0_3epoch_4layer_128n_2out.ckpt"
+all_model_checkpoint_paths: "small0_3epoch_4layer_128n_2out.ckpt"
